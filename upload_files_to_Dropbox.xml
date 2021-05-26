@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+<accessToken>Bearer rCHrqYDvgjgAAAAAAAAA1IC4tCHhk88z-qSoNN8T7_mQ3903EdKkUaiC5Ix4RXZg</accessToken>
+<destPath>/Архив ЗГУ</destPath>
+<sourcePath>d:\test</sourcePath>
+<password>556089Erm</password>
+<iter>55608</iter>
+<logfile>d:\test\logging</logfile>
+<sqlite>d:\test\catalog_dropbox.sqlite</sqlite>	
+</root>
