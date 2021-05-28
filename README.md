@@ -36,7 +36,16 @@ Hash значение загруженного файла вычисляется
 корпорации  Microsoft за прекрасный инструмент Microsoft Visual Studio Community 2019
 Сайту stackoverflow за опубликованные примеры разных лет.
 
+Создание приложения для Dropx.
 
+На портале https://www.dropbox.com/developers/ переходим по кнопке "App Console" на консоль администратора.
 
+1. Create a new app on the DBX Platform
 
+2. Choose the type of access you need
+
+ - App folder– Access to a single folder created specifically for your app.
+
+3. Name your app
+   
 

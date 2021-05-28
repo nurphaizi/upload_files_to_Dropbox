@@ -58,7 +58,19 @@ using namespace sinks;
 using namespace keywords;
 using namespace trivial;
 
-
+struct FileKey
+{
+    FileKey()
+    {
+        memset(hash,0, 65);
+    }
+    path name;
+    char hash[65];
+    int hash_len;
+    size_t size;
+    time_t CREATION_TIME;
+    time_t LAST_WRITE_TIME;
+};
 struct FileInfo
 {
     string_t name;
@@ -1038,8 +1050,13 @@ int main(int argc, char** argv)
     }
 
     SqliteConnection DB(dbfile);
-    std::vector<path> filesListToUpload;
+    std::vector<FileKey> filesListToUpload;
     const std::regex txt_reg(path(logfile).filename().string()+"_\\d+.log");
+
+    char* hash = new char[65];
+    memset(hash, 0, 65);
+    int hash_len = 65;
+
     for (directory_entry& entry : directory_iterator(source_path))
     {
         path localPath(entry.path());
@@ -1066,27 +1083,38 @@ int main(int argc, char** argv)
             BOOST_LOG_SEV(lg, trivial::info) << "skipped catalog file " << localPath << std::endl;
             continue;
         }
-       
+        hash_len = 65;
+        memset(hash, 0, 65);
+        gzipEncrypt::compute_dropbox_hash(localPath, hash, hash_len);
+        size_t SIZE = file_size(localPath);
+        time_t CREATION_TIME = creation_time(localPath);
+        time_t LAST_WRITE_TIME = last_write_time(localPath);
 
-        if (!DB.fileAllreadyUploaded(localPath))
+        if (!DB.fileAllreadyUploaded(localPath, hash, hash_len,SIZE,CREATION_TIME, LAST_WRITE_TIME))
         {
-            filesListToUpload.push_back(localPath);
-            BOOST_LOG_SEV(lg, trivial::info)<<" added to list " << localPath << std::endl;
+            FileKey key;
+            key.name = localPath;
+            key.size = SIZE;
+            key.CREATION_TIME = CREATION_TIME;
+            key.LAST_WRITE_TIME = LAST_WRITE_TIME;
+            memcpy(key.hash, hash, hash_len);
+            filesListToUpload.push_back(key);
+            BOOST_LOG_SEV(lg, trivial::info)<<" added to list " << localPath << "hash "<<hash<<std::endl;
         }
     }
-
+   
     try
     {
         auto pfileList = make_shared< std::vector<FileInfo>>();
         string_t cursor;
         path source_path(sourcePath);
-        for_each(filesListToUpload.begin(), filesListToUpload.end(), [&DB, &pfileList,&cursor](path p) {
-            p.make_preferred();
-            string_t localFile = p.wstring();
+        for_each(filesListToUpload.begin(), filesListToUpload.end(), [&DB, &pfileList,&cursor](FileKey p) {
+            p.name.make_preferred();
+            string_t localFile = p.name.wstring();
             BOOST_LOG_SEV(lg, trivial::info) << "file to upload " << localFile << std::endl;
             shared_ptr<char*> ppassword = make_shared<char*>(new char[password.length() + 1]);
             strcpy(*ppassword, utility::conversions::to_utf8string(password).c_str());
-            path encrypted_path = gzipEncrypt::compressEncryptDeleteFile(p, *ppassword, iter);
+            path encrypted_path = gzipEncrypt::compressEncryptDeleteFile(p.name, *ppassword, iter);
             auto size = file_size(encrypted_path);
             SpaceAllocationInfo si = spaceUsageInfo();
 
@@ -1145,12 +1173,12 @@ int main(int argc, char** argv)
             if (compare_hashes(*pcontent_hash, hash, hash_len))
             {
 
-                shared_ptr<size_t> pfsize = make_shared<size_t>();
-                *pfsize = file_size(p);
-                std::time_t t = creation_time(p);
+                shared_ptr<uintmax_t> pfsize = make_shared<uintmax_t>();
+                *pfsize = p.size;
+                std::time_t t = p.CREATION_TIME;
 
                 BOOST_LOG_SEV(lg, trivial::info) << "file uploaded " << localFile << " size " << *pfsize << " creation_time " << std::put_time(std::localtime(&t), "%c %Z") << " content hash " << *pcontent_hash << std::endl;
-                DB.insertRow(p);
+                DB.insertRow(p.name,p.hash,p.hash_len,p.size,p.CREATION_TIME,p.LAST_WRITE_TIME);
             }
             else
                 deletePath(destFileName);
