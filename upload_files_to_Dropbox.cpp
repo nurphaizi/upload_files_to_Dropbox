@@ -584,7 +584,7 @@ void deletePath(string_t path)
 {
     auto taskDeletePath = pplx::create_task([&path]() {
         web::http::http_request request(methods::POST);
-        request.headers().add(U("Authorization"), U("Bearer rCHrqYDvgjgAAAAAAAAA0oW2g67iyyUS0SNnYBa0rQ1i_RJTX3TfncA6Q4yOg0Oq"));
+        request.headers().add(U("Authorization"), accessToken);
         request.headers().add(U("Content-Type"), U("application/json"));
         json::value parameters;
         parameters[U("path")] = json::value::string(path, true);
@@ -960,7 +960,6 @@ int main(int argc, char** argv)
     {
         path application(argv[0]);
         string app = application.replace_extension(".xml").string();
-        std::wcout << app << std::endl;
         std::map<std::string, std::string> m = settings::getSettings(app);
         accessToken = utility::conversions::to_string_t(m["accessToken"]);
         sourcePath = utility::conversions::to_string_t(m["sourcePath"]);
@@ -1099,10 +1098,13 @@ int main(int argc, char** argv)
             key.LAST_WRITE_TIME = LAST_WRITE_TIME;
             memcpy(key.hash, hash, hash_len);
             filesListToUpload.push_back(key);
-            BOOST_LOG_SEV(lg, trivial::info)<<" added to list " << localPath << "hash "<<hash<<std::endl;
+            BOOST_LOG_SEV(lg, trivial::info)<<" added to list " << localPath << " hash value"<<hash<<std::endl;
         }
+        else
+            BOOST_LOG_SEV(lg, trivial::info) << " file " << localPath << " allready uploaded. Hash value" << hash << std::endl;
+
     }
-   
+ 
     try
     {
         auto pfileList = make_shared< std::vector<FileInfo>>();
